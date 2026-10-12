@@ -44,6 +44,22 @@ The application follows a CLI-first development approach, where backend function
 - Generate daily schedules.
 - View scheduling explanations and available-time summaries.
 
+### 🎨 Professional UI Enhancements (Optional Challenge 4)
+
+I improved the Streamlit interface to make PawPal+ more visually appealing and easier to use.
+
+The enhancements include:
+
+- **Dashboard Metrics:** Displays the number of registered pets, total tasks, completed tasks, and pending tasks using `st.metric()`.
+- **Progress Tracking:** Uses `st.progress()` to show overall task completion and individual pet progress.
+- **Color-Coded Priorities:** Uses 🔴 High, 🟡 Medium, and 🟢 Low indicators to make task urgency easier to recognize.
+- **Pet Cards:** Uses `st.container(border=True)` and `st.columns()` to organize pet information.
+- **Improved Task Display:** Shows tasks in structured panels with completion status, due dates, duration, and recurrence.
+- **Professional Schedule Tables:** Uses `st.dataframe()` to display schedules clearly.
+- **Conflict Alerts:** Uses `st.warning()`, `st.error()`, and `st.success()` to communicate scheduling issues and results.
+
+These improvements make the application's existing scheduling features easier to understand without modifying the backend algorithms.
+
 ## 🚀 Getting Started
 
 ### Requirements

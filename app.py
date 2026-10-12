@@ -4,12 +4,11 @@ from datetime import date, time
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 st.set_page_config(
-    page_title="PawPal+",
+    page_title="PawPal+ | Pet Care Dashboard",
     page_icon="🐾",
     layout="wide"
 )
 
-# SESSION STATE
 if "owner" not in st.session_state:
     st.session_state.owner = Owner(
         name="Jordan",
@@ -19,163 +18,275 @@ if "owner" not in st.session_state:
 owner = st.session_state.owner
 scheduler = Scheduler(owner)
 
+PRIORITY_ICONS = {
+    "high": "🔴",
+    "medium": "🟡",
+    "low": "🟢"
+}
+
+SPECIES_ICONS = {
+    "dog": "🐶",
+    "cat": "🐱",
+    "other": "🐾"
+}
+
+
+def priority_label(priority):
+    """Return a visual priority indicator."""
+    return (
+        f"{PRIORITY_ICONS.get(priority.lower(), '⚪')} "
+        f"{priority.capitalize()}"
+    )
+
+
+def pet_icon(species):
+    """Return an emoji representing a pet species."""
+    return SPECIES_ICONS.get(species.lower(), "🐾")
+
+
 # HEADER
 st.title("🐾 PawPal+")
-st.write("Your smart pet care management assistant.")
-st.caption("Manage pets, organize care routines, and plan your day.")
-st.divider()
-
-# OWNER INFORMATION
-st.header("👤 Owner Information")
-
-owner.name = st.text_input(
-    "Owner Name",
-    value=owner.name
+st.markdown("#### Your Pet Care Dashboard")
+st.caption(
+    "One place to manage your pets, track care routines, "
+    "and plan your day."
 )
 
-owner.available_minutes = st.number_input(
-    "Daily Available Time (minutes)",
-    min_value=1,
-    max_value=1440,
-    value=owner.available_minutes
+st.divider()
+
+# SIDEBAR SETTINGS
+with st.sidebar:
+    st.header("⚙️ Settings")
+
+    owner.name = st.text_input(
+        "Owner Name",
+        value=owner.name
+    )
+
+    owner.available_minutes = st.number_input(
+        "Daily Available Time (minutes)",
+        min_value=1,
+        max_value=1440,
+        value=owner.available_minutes
+    )
+
+    st.divider()
+    st.info(
+        "🐾 PawPal+ keeps your pet information "
+        "available during this browser session."
+    )
+
+# DASHBOARD METRICS
+st.subheader(f"👋 Welcome, {owner.name}!")
+
+all_tasks = owner.get_all_tasks()
+total_tasks = len(all_tasks)
+completed_tasks = sum(
+    1 for _, task in all_tasks if task.completed
+)
+pending_tasks = total_tasks - completed_tasks
+
+completion_rate = (
+    completed_tasks / total_tasks
+    if total_tasks else 0
+)
+
+metric1, metric2, metric3, metric4 = st.columns(4)
+
+metric1.metric("🐾 My Pets", len(owner.pets))
+metric2.metric("📋 Total Tasks", total_tasks)
+metric3.metric("✅ Completed", completed_tasks)
+metric4.metric("⏳ Pending", pending_tasks)
+
+st.markdown("##### Overall Task Progress")
+st.progress(completion_rate)
+st.caption(
+    f"{completion_rate:.0%} of all recorded tasks completed"
 )
 
 st.divider()
 
 # PET MANAGEMENT
-st.header("🐶 Manage Your Pets")
+st.header("🐶 My Pets")
 
-with st.form("add_pet_form", clear_on_submit=True):
-    pet_name = st.text_input("Pet Name")
-    species = st.selectbox("Species", ["Dog", "Cat", "Other"])
-    age = st.number_input("Age", min_value=0, max_value=40)
-
-    if st.form_submit_button("Add Pet"):
-        if pet_name.strip():
-            owner.add_pet(
-                Pet(pet_name.strip(), species, int(age))
-            )
-            st.success(f"{pet_name.strip()} added successfully!")
-        else:
-            st.error("Please enter a pet name.")
-
-if owner.pets:
-    st.subheader("Registered Pets")
-
-    for pet in owner.pets:
-        st.write(
-            f"🐾 **{pet.name}** — {pet.species}, "
-            f"{pet.age} years old | {len(pet.tasks)} tasks"
-        )
-else:
-    st.info("No pets registered yet.")
-
-st.divider()
-
-# TASK MANAGEMENT
-st.header("📋 Manage Care Tasks")
-
-if owner.pets:
-    with st.form("add_task_form", clear_on_submit=True):
-        selected_pet = st.selectbox(
-            "Select Pet",
-            options=range(len(owner.pets)),
-            format_func=lambda i: (
-                f"{owner.pets[i].name} ({owner.pets[i].species})"
-            )
-        )
-
-        task_title = st.text_input("Task Name")
+with st.expander("➕ Register a New Pet", expanded=not owner.pets):
+    with st.form("add_pet_form", clear_on_submit=True):
+        name = st.text_input("Pet Name")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            duration = st.number_input(
-                "Duration (minutes)",
-                min_value=1,
-                max_value=240,
-                value=20
-            )
-
-            priority = st.selectbox(
-                "Priority",
-                ["high", "medium", "low"]
+            species = st.selectbox(
+                "Species",
+                ["Dog", "Cat", "Other"]
             )
 
         with col2:
-            due_time = st.time_input(
-                "Preferred Time",
-                value=time(8, 0)
+            age = st.number_input(
+                "Age",
+                min_value=0,
+                max_value=40
             )
 
-            recurrence = st.selectbox(
-                "Frequency",
-                ["none", "daily", "weekly"]
-            )
-
-        # Today's date is the default due date.
-        task_date = st.date_input(
-            "Task Due Date",
-            value=date.today()
-        )
-
-        if st.form_submit_button("Add Task"):
-            if task_title.strip():
-                task = Task(
-                    title=task_title.strip(),
-                    duration_minutes=int(duration),
-                    priority=priority,
-                    due_time=due_time.strftime("%H:%M"),
-                    recurrence=recurrence,
-                    due_date=task_date
+        if st.form_submit_button("Add Pet", type="primary"):
+            if name.strip():
+                owner.add_pet(
+                    Pet(name.strip(), species, int(age))
                 )
-
-                owner.pets[selected_pet].add_task(task)
-                st.success(
-                    f"{task_title.strip()} added successfully!"
-                )
+                st.rerun()
             else:
-                st.error("Please enter a task name.")
+                st.error("Please enter a pet name.")
 
-    st.subheader("🔎 Browse & Filter Tasks")
+if owner.pets:
+    columns = st.columns(3)
 
-    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    for index, pet in enumerate(owner.pets):
+        with columns[index % 3]:
+            with st.container(border=True):
+                st.markdown(
+                    f"### {pet_icon(pet.species)} {pet.name}"
+                )
+                st.write(f"**Species:** {pet.species}")
+                st.write(f"**Age:** {pet.age} years")
+                st.write(f"**Care Tasks:** {len(pet.tasks)}")
 
-    with filter_col1:
-        pet_filter = st.selectbox(
+                pet_completed = sum(
+                    1 for task in pet.tasks if task.completed
+                )
+
+                pet_progress = (
+                    pet_completed / len(pet.tasks)
+                    if pet.tasks else 0
+                )
+
+                st.progress(pet_progress)
+                st.caption(
+                    f"{pet_completed}/{len(pet.tasks)} "
+                    "tasks completed"
+                )
+else:
+    st.info("No pets registered yet. Add your first pet above!")
+
+st.divider()
+
+# ADD CARE TASKS
+st.header("📝 Care Task Manager")
+
+if owner.pets:
+    with st.expander("➕ Create a Care Task", expanded=True):
+        with st.form("add_task_form", clear_on_submit=True):
+            pet_index = st.selectbox(
+                "Assign to Pet",
+                range(len(owner.pets)),
+                format_func=lambda i: (
+                    f"{pet_icon(owner.pets[i].species)} "
+                    f"{owner.pets[i].name}"
+                )
+            )
+
+            task_title = st.text_input(
+                "Task Name",
+                placeholder="e.g. Morning Walk"
+            )
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                duration = st.number_input(
+                    "Duration (minutes)",
+                    min_value=1,
+                    max_value=240,
+                    value=20
+                )
+
+            with col2:
+                priority = st.selectbox(
+                    "Priority",
+                    ["high", "medium", "low"],
+                    format_func=priority_label
+                )
+
+            with col3:
+                recurrence = st.selectbox(
+                    "Frequency",
+                    ["none", "daily", "weekly"]
+                )
+
+            col4, col5 = st.columns(2)
+
+            with col4:
+                due_time = st.time_input(
+                    "Preferred Time",
+                    value=time(8, 0)
+                )
+
+            with col5:
+                due_date = st.date_input(
+                    "Due Date",
+                    value=date.today()
+                )
+
+            if st.form_submit_button(
+                "Add Care Task",
+                type="primary"
+            ):
+                if task_title.strip():
+                    task = Task(
+                        title=task_title.strip(),
+                        duration_minutes=int(duration),
+                        priority=priority,
+                        due_time=due_time.strftime("%H:%M"),
+                        recurrence=recurrence,
+                        due_date=due_date
+                    )
+
+                    owner.pets[pet_index].add_task(task)
+                    st.rerun()
+                else:
+                    st.error("Please enter a task name.")
+
+    # TASK BROWSER
+    st.subheader("📋 All Care Tasks")
+
+    filter1, filter2, filter3 = st.columns(3)
+
+    with filter1:
+        selected_pet = st.selectbox(
             "Filter by Pet",
             ["All Pets"] + [
                 pet.name for pet in owner.pets
             ]
         )
 
-    with filter_col2:
-        status_filter = st.selectbox(
-            "Task Status",
+    with filter2:
+        selected_status = st.selectbox(
+            "Status",
             ["All", "Pending", "Completed"]
         )
 
-    with filter_col3:
-        sort_option = st.selectbox(
-            "Sort Tasks",
+    with filter3:
+        sort_choice = st.selectbox(
+            "Sort By",
             ["Preferred Time", "Priority"]
         )
 
     completed_filter = None
 
-    if status_filter == "Pending":
+    if selected_status == "Pending":
         completed_filter = False
-    elif status_filter == "Completed":
+    elif selected_status == "Completed":
         completed_filter = True
 
     filtered_tasks = scheduler.filter_tasks(
-        pet_name=None if pet_filter == "All Pets" else pet_filter,
+        pet_name=(
+            None if selected_pet == "All Pets"
+            else selected_pet
+        ),
         completed=completed_filter
     )
 
-    if sort_option == "Preferred Time":
-        filtered_tasks = sorted(
-            filtered_tasks,
+    if sort_choice == "Preferred Time":
+        filtered_tasks.sort(
             key=lambda item: (
                 item[1].due_date,
                 item[1].due_time or "23:59"
@@ -188,66 +299,72 @@ if owner.pets:
             "low": 2
         }
 
-        filtered_tasks = sorted(
-            filtered_tasks,
+        filtered_tasks.sort(
             key=lambda item: (
-                priority_order.get(item[1].priority.lower(), 3),
+                priority_order.get(item[1].priority, 3),
                 item[1].due_date,
                 item[1].due_time or "23:59"
             )
         )
 
-    st.caption(f"Showing {len(filtered_tasks)} task(s)")
+    st.caption(f"Showing {len(filtered_tasks)} care task(s)")
 
-    if filtered_tasks:
-        for pet, task in filtered_tasks:
-            col1, col2 = st.columns([5, 1])
+    for pet, task in filtered_tasks:
+        with st.container(border=True):
+            info_col, action_col = st.columns([5, 1])
 
-            with col1:
-                status = "✅ Completed" if task.completed else "⏳ Pending"
-
-                st.write(
-                    f"**{pet.name}: {task.title}**"
+            with info_col:
+                st.markdown(
+                    f"**{pet_icon(pet.species)} "
+                    f"{pet.name} — {task.title}**"
                 )
+
+                status = (
+                    "✅ Completed" if task.completed
+                    else "⏳ Pending"
+                )
+
                 st.caption(
-                    f"{status} | {task.due_date} at "
-                    f"{task.due_time or 'Unspecified'} | "
-                    f"{task.duration_minutes} min | "
-                    f"{task.priority.capitalize()} priority | "
-                    f"{task.recurrence.capitalize()}"
+                    f"{status}  |  "
+                    f"{priority_label(task.priority)}  |  "
+                    f"🕒 {task.due_time or 'Any time'}  |  "
+                    f"📅 {task.due_date}  |  "
+                    f"⏱️ {task.duration_minutes} min  |  "
+                    f"🔁 {task.recurrence.capitalize()}"
                 )
 
-            with col2:
+            with action_col:
                 if not task.completed:
                     if st.button(
-                        "Complete",
+                        "✅ Complete",
                         key=f"complete_{id(task)}"
                     ):
                         scheduler.mark_task_complete(pet, task)
                         st.rerun()
 
-            st.divider()
-    else:
-        st.info("No tasks match your selected filters.")
-
+    if not filtered_tasks:
+        st.info("No tasks match your current filters.")
 else:
-    st.info("Add a pet before creating care tasks.")
+    st.info("Register a pet before creating care tasks.")
+
+st.divider()
 
 # CONFLICT DETECTION
-st.header("⚠️ Scheduling Conflict Check")
+st.header("⚠️ Schedule Conflict Monitor")
 
-check_date = st.date_input(
-    "Check conflicts for",
+conflict_date = st.date_input(
+    "Check Date",
     value=date.today(),
-    key="conflict_date"
+    key="conflict_check"
 )
 
-conflicts = scheduler.detect_conflicts(on_date=check_date)
+conflicts = scheduler.detect_conflicts(
+    on_date=conflict_date
+)
 
 if conflicts:
     st.warning(
-        f"{len(conflicts)} potential scheduling "
-        f"conflict(s) detected."
+        f"{len(conflicts)} scheduling conflict(s) detected."
     )
 
     for conflict in conflicts:
@@ -257,42 +374,42 @@ if conflicts:
         ]
 
         st.error(
-            f"Overlap around {conflict['time']}: "
-            + " and ".join(task_names)
+            f"🕒 {conflict['time']} — "
+            + " overlaps with ".join(task_names)
         )
 
     st.info(
-        "Consider adjusting the preferred times of these "
-        "tasks to avoid overlapping care activities."
+        "💡 Tip: Adjust the preferred times "
+        "of conflicting tasks."
     )
 else:
     st.success(
-        "No overlapping preferred-time tasks found "
+        "✅ No preferred-time conflicts detected "
         "for this date."
     )
 
 st.divider()
 
 # DAILY SCHEDULE
-st.header("📅 Daily Care Schedule")
+st.header("📅 Daily Care Planner")
 
-schedule_col1, schedule_col2 = st.columns(2)
+col1, col2 = st.columns(2)
 
-with schedule_col1:
+with col1:
     schedule_date = st.date_input(
-        "Schedule Date",
+        "Plan for Date",
         value=date.today(),
-        key="schedule_date"
+        key="daily_date"
     )
 
-with schedule_col2:
+with col2:
     start_time = st.time_input(
-        "Schedule Start Time",
+        "Starting Time",
         value=time(8, 0),
-        key="schedule_start"
+        key="daily_start"
     )
 
-if st.button("Generate Schedule", type="primary"):
+if st.button("🚀 Generate My Schedule", type="primary"):
     daily_scheduler = Scheduler(
         owner,
         start_time=start_time.strftime("%H:%M")
@@ -303,73 +420,64 @@ if st.button("Generate Schedule", type="primary"):
     )
 
     if schedule:
-        st.success("Your daily care schedule is ready!")
+        st.success("Your daily care plan is ready! 🐾")
 
-        rows = []
+        schedule_data = []
 
         for item in schedule:
-            rows.append({
+            schedule_data.append({
                 "Start": item["start"],
                 "End": item["end"],
                 "Pet": item["pet"],
                 "Activity": item["task"],
                 "Duration": f"{item['duration']} min",
-                "Priority": item["priority"].capitalize()
+                "Priority": priority_label(
+                    item["priority"]
+                )
             })
 
-        st.table(rows)
+        st.dataframe(
+            schedule_data,
+            use_container_width=True,
+            hide_index=True
+        )
 
         used_minutes = sum(
             item["duration"]
             for item in schedule
         )
 
-        col1, col2, col3 = st.columns(3)
+        stat1, stat2, stat3 = st.columns(3)
 
-        col1.metric(
-            "Scheduled Tasks",
-            len(schedule)
-        )
-
-        col2.metric(
-            "Time Used",
-            f"{used_minutes} min"
-        )
-
-        col3.metric(
-            "Time Remaining",
+        stat1.metric("Activities", len(schedule))
+        stat2.metric("Time Planned", f"{used_minutes} min")
+        stat3.metric(
+            "Time Left",
             f"{owner.available_minutes - used_minutes} min"
         )
 
         st.info(
-            "How this plan was created: high-priority tasks "
-            "are considered first. Tasks with the same priority "
-            "are ordered by preferred time. Activities that "
-            "exceed the remaining daily time budget are skipped."
+            "🧠 **How PawPal+ planned your day:** "
+            "High-priority tasks were considered first, "
+            "followed by medium- and low-priority tasks. "
+            "Tasks with the same priority were ordered "
+            "by preferred time. Activities exceeding your "
+            "available time budget were skipped."
         )
     else:
         st.warning(
-            "No pending tasks could be scheduled for this date. "
-            "Try adding tasks or increasing your available time."
-        )
-
-    daily_conflicts = daily_scheduler.detect_conflicts(
-        on_date=schedule_date
-    )
-
-    if daily_conflicts:
-        st.warning(
-            f"This date also has "
-            f"{len(daily_conflicts)} preferred-time "
-            f"conflict(s). See the Conflict Check section."
+            "No pending tasks could fit into the "
+            "schedule for this date."
         )
 
     st.caption(
-        "Preferred times guide task ordering but are not "
-        "treated as fixed appointment times."
+        "Preferred times are used for ordering. "
+        "They are not enforced as fixed appointments."
     )
 
 st.divider()
+
+# FOOTER
 st.caption(
-    "PawPal+ | Smart Pet Care Management | Built with Python & Streamlit"
+    "🐾 PawPal+ | Smart Pet Care Management"
 )
