@@ -141,7 +141,7 @@ if owner.pets:
                         "Complete",
                         key=f"complete_{id(pet)}_{task_index}"
                     ):
-                        task.mark_complete()
+                        Scheduler(owner).mark_task_complete(pet, task)
                         st.rerun()
 else:
     st.info("Add a pet before creating care tasks.")
