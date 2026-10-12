@@ -91,3 +91,54 @@ def test_overlapping_tasks():
 
     assert len(conflicts) == 1
     assert conflicts[0]["time"] == "08:15"
+
+
+def test_pet_with_no_tasks():
+    owner = Owner("Jordan", 120)
+    owner.add_pet(Pet("Bro", "Dog", 3))
+
+    scheduler = Scheduler(owner)
+
+    assert scheduler.generate_schedule() == []
+    assert scheduler.detect_conflicts() == []
+
+
+def test_same_time_conflict():
+    owner = Owner("Jordan", 120)
+    pet = Pet("Bro", "Dog", 3)
+    owner.add_pet(pet)
+
+    pet.add_task(Task("Walk", 30, "high", "08:00"))
+    pet.add_task(Task("Feeding", 15, "high", "08:00"))
+
+    conflicts = Scheduler(owner).detect_conflicts()
+
+    assert len(conflicts) == 1
+    assert conflicts[0]["time"] == "08:00"
+
+
+def test_insufficient_available_time():
+    owner = Owner("Jordan", 20)
+    pet = Pet("Bro", "Dog", 3)
+    owner.add_pet(pet)
+
+    pet.add_task(Task("Morning Walk", 30, "high", "08:00"))
+
+    schedule = Scheduler(owner).generate_schedule()
+
+    assert schedule == []
+
+
+def test_weekly_recurrence():
+    owner = Owner("Jordan", 120)
+    pet = Pet("Bro", "Dog", 3)
+    owner.add_pet(pet)
+
+    task = Task("Grooming", 20, "medium", recurrence="weekly")
+    pet.add_task(task)
+
+    next_task = Scheduler(owner).mark_task_complete(pet, task)
+
+    assert next_task is not None
+    assert next_task.due_date == date.today() + timedelta(days=7)
+    assert next_task.completed is False

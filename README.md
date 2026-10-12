@@ -87,7 +87,7 @@ Bro: Morning Walk [Completed]
 
 ## 🧪 Testing PawPal+
 
-PawPal+ uses pytest to verify core functionality and scheduling algorithms.
+PawPal+ uses pytest to verify that its core features and scheduling algorithms work correctly. The test suite includes both normal scenarios and edge cases.
 
 ### Run Tests
 
@@ -106,21 +106,31 @@ Coverage reporting requires `pytest-cov`.
 ### Sample Test Output
 
 ```text
-collected 6 items
+collected 10 items
 
-tests/test_pawpal.py ......                  [100%]
+tests/test_pawpal.py ..........              [100%]
 
-6 passed
+10 passed
 ```
 
 ### Tested Features
 
-1. Task completion updates the completion status.
-2. Adding a task increases a pet's task count.
-3. Sorting arranges tasks chronologically.
-4. Filtering returns tasks belonging to a specific pet.
-5. Completing a daily task creates the next occurrence without duplication.
-6. Conflict detection identifies overlapping task times.
+1. **Task Completion:** Verifies that completing a task updates its status.
+2. **Task Addition:** Confirms that adding a task increases a pet's task count.
+3. **Sorting Correctness:** Ensures tasks are arranged chronologically by preferred time.
+4. **Filtering:** Confirms that tasks can be retrieved for a specific pet.
+5. **Daily Recurrence:** Verifies that completing a daily task generates another task for the following day without duplication.
+6. **Overlapping Task Detection:** Checks whether tasks with overlapping preferred times are flagged.
+7. **Empty Task Lists:** Ensures the scheduler handles pets without tasks without crashing.
+8. **Identical Task Times:** Verifies that tasks scheduled for exactly the same time produce a conflict warning.
+9. **Insufficient Available Time:** Confirms that tasks exceeding the owner's time budget are excluded from the schedule.
+10. **Weekly Recurrence:** Verifies that completing a weekly task schedules its next occurrence seven days later.
+
+### Confidence Level: ⭐⭐⭐⭐☆ (4/5)
+
+I am confident in PawPal+'s core functionality because all 10 automated tests passed. The tests cover normal operations and important edge cases involving sorting, recurrence, scheduling constraints, and conflict detection.
+
+However, the system still has limitations. User data is stored temporarily in Streamlit session state, and preferred task times are not enforced as fixed appointments. Additional testing and improvements would be necessary before using the application as a fully reliable pet care management system.
 
 ## 📐 Smarter Scheduling
 
